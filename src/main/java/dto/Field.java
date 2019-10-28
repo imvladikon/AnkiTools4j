@@ -7,21 +7,26 @@ import lombok.*;
 @Builder
 @AllArgsConstructor
 public class Field {
+	//field name
 	String name;
-	boolean rtl;
-	boolean sticky;
-	String[] media;
+	//boolean, right-to-left script
+	@Builder.Default
+	boolean rtl = false;
+	//sticky fields retain the value that was last added
+	//when adding new notes
+	@Builder.Default
+	boolean sticky = false;
+	//array of media. appears to be unused
+	@Builder.Default
+	String[] media = new String[] {};
+	//ordinal of the field - goes from 0 to num fields -1
 	int ord;
-	String font;
-	int size;
-
-	public Field() {
-		this.rtl = false;
-		this.sticky = false;
-		this.media = new String[] {};
-		this.font = "Ariel";
-		this.size = 12;
-	}
+	//display font
+	@Builder.Default
+	String font = "Ariel";
+	//font size
+	@Builder.Default
+	int size = 12;
 
 	public Field(String name, String font, int size) {
 		this.name = name;

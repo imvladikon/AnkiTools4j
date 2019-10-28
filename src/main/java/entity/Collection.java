@@ -60,10 +60,10 @@ public class Collection implements Insertable {
 				.mod(timestamp)
 				.crt(GeneralHelper.getDayStart())
 				.deckId(timestamp)
-				.conf(ConfDTO.create().setCurModel(timestamp).toJson())
+				.conf(ColConfJObject.create().setCurModel(timestamp).toJson())
 				.build();
 		List<Field> flds = new ArrayList<>();
-		List<TemplateDTO> tmpls = new ArrayList<>();
+		List<TemplateJObject> tmpls = new ArrayList<>();
 		List<String> alreadyAdded = new ArrayList<>();
 		String css = "";
 		for (String key : infoPerMid.keySet()) {
@@ -93,7 +93,8 @@ public class Collection implements Insertable {
 			//											"FrontSide");
 			String afmt = "{{FrontSide}}\n" + "<hr id=answer(.*?)>"
 				+ format.split("<hr id=answer(.*?)>")[1];
-			tmpls.add(TemplateDTO.builder()
+			//if (tmpls.isEmpty()) {
+			tmpls.add(TemplateJObject.builder()
 					.name("Forward")
 					.qfmt(qfmt)
 					.did(null)
@@ -102,23 +103,24 @@ public class Collection implements Insertable {
 					.ord(0L)
 					.bqfmt("")
 					.build());
+			//}
 			alreadyAdded
 					.add(obj.getItem3().toJSON().replaceAll("hint:", "").replaceAll("type:", ""));
 		}
-		HashMap<Long, JDTO> hashMap = new HashMap<>();
+		HashMap<Long, ColModelsJObject> hashMap = new HashMap<>();
 		flds.forEach(f -> f.setMedia(new String[] {}));
 		hashMap.put(result.mod,
-					JDTO.create()
+					ColModelsJObject.create()
 							.setDid(result.deckId)
 							.setFlds(flds)
 							.setTmpls(tmpls)
 							.setId(mid)
 							.setCss(css)
 							.setMod(result.mod));
-		HashMap<String, DeckDTO> decks = new HashMap<>();
-		decks.put("1", DeckDTO.create());
+		HashMap<String, ColDeckJObject> decks = new HashMap<>();
+		decks.put("1", ColDeckJObject.create());
 		decks.put(	String.valueOf(result.deckId),
-					DeckDTO.create()
+					ColDeckJObject.create()
 							.setName(name)
 							.setUsn(-1)
 							.setNewToday(new int[] { 365, 0 })
@@ -127,8 +129,8 @@ public class Collection implements Insertable {
 							.setLrnToday(new int[] { 365, 0 })
 							.setId(result.deckId)
 							.setMode(result.mod));
-		HashMap<String, DconfDTO> dconfs = new HashMap<>();
-		dconfs.put("1", DconfDTO.create());
+		HashMap<String, ColDConfJObject> dconfs = new HashMap<>();
+		dconfs.put("1", ColDConfJObject.create());
 		result.dconf = new ObjectMapper().writeValueAsString(dconfs);
 		result.decks = new ObjectMapper().writeValueAsString(decks);
 		result.models = new ObjectMapper().writeValueAsString(hashMap);

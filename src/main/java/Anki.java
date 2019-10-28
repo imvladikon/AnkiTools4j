@@ -2,13 +2,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.javaws.exceptions.InvalidArgumentException;
 import dto.Field;
-import dto.JDTO;
-import dto.TemplateDTO;
+import dto.ColModelsJObject;
+import dto.TemplateJObject;
 import entity.Card;
 import entity.Collection;
 import entity.Note;
 import entity.RevLogMetadata;
-import helpers.*;
+import helpers.GeneralHelper;
+import helpers.Mapper;
+import helpers.SQLiteHelper;
+import helpers.ZipFileUtils;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import models.*;
@@ -26,7 +29,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
-import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class Anki {
 	@Getter
@@ -144,7 +147,7 @@ public class Anki {
 	public void createApkgFile(String path) {
 		createDbFile();
 		createMediaFile();
-		executeSQLiteCommands();
+		fillData();
 		createZipFile(path);
 	}
 
@@ -154,7 +157,7 @@ public class Anki {
 	 * @param properties
 	 */
 	@SneakyThrows
-	public void addItem(String... properties) {
+	public Anki addItem(String... properties) {
 		String mid = "";
 		for (Map.Entry<String, Triplet<String, String, FieldList>> entry : this.infoPerMid
 				.entrySet()) {
@@ -170,9 +173,10 @@ public class Anki {
 		AnkiItem item = new AnkiItem((this.infoPerMid.get(mid)).getItem3(), properties);
 		item.setMid(mid);
 		if (containsItem(item)) {
-			return;
+			return this;
 		}
 		this.ankiItems.add(item);
+		return this;
 	}
 
 	/**
@@ -215,12 +219,8 @@ public class Anki {
 	 * @param comparison
 	 * @return
 	 */
-	public boolean containsItem(Function<AnkiItem, Boolean> comparison) {
-		for (AnkiItem ankiItem : this.ankiItems) {
-			if (comparison.apply(ankiItem))
-				return true;
-		}
-		return false;
+	public boolean containsItem(Predicate<AnkiItem> comparison) {
+		return this.ankiItems.stream().anyMatch(comparison);
 	}
 
 	public AnkiItem createAnkiItem(String... properties) {
@@ -320,20 +320,20 @@ public class Anki {
 	}
 
 	@SneakyThrows
-	private void executeSQLiteCommands(Anki anki) {
+	private void fillData(Anki anki) {
 		try {
 			this.conn = SQLiteHelper.getInstance("jdbc:sqlite:" + this.collectionFilePath)
 					.getConnection();
-			String column = GeneralHelper.readResource("sql/ColumnTable.sql");
-			String notes = GeneralHelper.readResource("sql/NotesTable.sql");
-			String cards = GeneralHelper.readResource("sql/CardsTable.sql");
-			String revLogs = GeneralHelper.readResource("sql/RevLogTable.sql");
-			String graves = GeneralHelper.readResource("sql/GravesTable.sql");
-			//			SQLiteHelper.executeSQLiteCommand(this.conn, column);
-			//			SQLiteHelper.executeSQLiteCommand(this.conn, notes);
-			//			SQLiteHelper.executeSQLiteCommand(this.conn, cards);
-			//			SQLiteHelper.executeSQLiteCommand(this.conn, revLogs);
-			//			SQLiteHelper.executeSQLiteCommand(this.conn, graves);
+//			SQLiteHelper.executeSQLiteCommand(	this.conn,
+//												GeneralHelper.readResource("sql/ collection.sql"));
+//			SQLiteHelper.executeSQLiteCommand(	this.conn,
+//												GeneralHelper.readResource("sql/notes.sql"));
+//			SQLiteHelper.executeSQLiteCommand(	this.conn,
+//												GeneralHelper.readResource("sql/cards.sql"));
+//			SQLiteHelper.executeSQLiteCommand(	this.conn,
+//												GeneralHelper.readResource("sql/revlog.sql"));
+//			SQLiteHelper.executeSQLiteCommand(	this.conn,
+//												GeneralHelper.readResource("sql/graves.sql"));
 			long id_deck = createCol();
 			createNotesAndCards(id_deck, anki);
 			addRevlogMetadata();
@@ -345,8 +345,8 @@ public class Anki {
 	}
 
 	@SneakyThrows
-	private void executeSQLiteCommands() {
-		executeSQLiteCommands(null);
+	private void fillData() {
+		fillData(null);
 	}
 
 	@SneakyThrows
@@ -359,19 +359,10 @@ public class Anki {
 		int i = 0;
 		if (this.mediaInfo != null) {
 			for (AnkiItem item : this.ankiItems) {
-				if (this.mediaInfo.getExtension().equals(".gif")
-					&& this.mediaInfo.getUserStringLocale().equals("zh-CN")) {
-					StrokeOrderHelper.downloadImage(
-													Paths.get(this.path)
-															.resolve(String.valueOf(i))
-															.toString(),
-													item.get(this.mediaInfo.getField()).toString());
+				if (this.mediaInfo.getExtension().equals(".gif")) {
+
 				} else if (this.mediaInfo.getExtension().equals(".wav")) {
-					SynthetizerHelper
-							.createAudio(	Paths.get(this.path).resolve(String.valueOf(i)).toString(),
-											item.get(this.mediaInfo.getField()).toString(),
-											this.mediaInfo.getCultureInfo(),
-											this.mediaInfo.getAudioFormat());
+					//TODO: not implemented yet
 				}
 				data.append("\"")
 						.append(i)
@@ -389,8 +380,6 @@ public class Anki {
 		try (FileOutputStream fos = new FileOutputStream(mediaFilePath.toString())) {
 			fos.write(data.toString().getBytes(StandardCharsets.UTF_8));
 		}
-		//		FileUtils.writeByteArrayToFile(	mediaFilePath.toFile(),
-		//										data.toString().getBytes(StandardCharsets.UTF_8));
 	}
 
 	@SneakyThrows
@@ -455,8 +444,8 @@ public class Anki {
 
 	@SneakyThrows
 	private void addFields(String jsonString, List<Long> mids) {
-		TypeReference<HashMap<Long, JDTO>> typeRef = new TypeReference<HashMap<Long, JDTO>>() {};
-		for (Map.Entry<Long, JDTO> entry : new ObjectMapper().readValue(jsonString, typeRef)
+		TypeReference<HashMap<Long, ColModelsJObject>> typeRef = new TypeReference<HashMap<Long, ColModelsJObject>>() {};
+		for (Map.Entry<Long, ColModelsJObject> entry : new ObjectMapper().readValue(jsonString, typeRef)
 				.entrySet()) {
 			FieldList fields = new FieldList();
 			fields.addAll(entry.getValue().getFlds());
@@ -465,13 +454,13 @@ public class Anki {
 					.getTmpls()
 					.stream()
 					.findFirst()
-					.map(TemplateDTO::getQfmt)
+					.map(TemplateJObject::getQfmt)
 					.orElse("");
 			String afmt = entry.getValue()
 					.getTmpls()
 					.stream()
 					.findFirst()
-					.map(TemplateDTO::getAfmt)
+					.map(TemplateJObject::getAfmt)
 					.orElse("");
 			afmt = afmt.replaceAll("\\{\\{FrontSide}}", qfmt);
 			String css = entry.getValue().getCss();

@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TemplateDTO {
-	String name;
-	String qfmt;
-	Long did;
-	String bafmt;
-	String afmt;
-	Long ord;
-	String bqfmt;
+public class RevJObject {
+	long perDay;
+	double fuzz;
+	long ivlFct;
+	long maxIvl;
+	double ease4;
+	boolean bury;
+	int minSpace;
 }

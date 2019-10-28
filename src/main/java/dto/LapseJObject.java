@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LapseDTO {
+public class LapseJObject {
     int leechFails;
     int minInt;
     int[] delays;
