@@ -1,5 +1,6 @@
 package models;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.SneakyThrows;
 
 import java.util.HashMap;
@@ -42,13 +43,6 @@ public class AnkiDictDynamic<T> {
 
 	@SneakyThrows
 	public T toObject(Class<T> classz) {
-		//            T result = obj ?? new T();
-		//            PropertyInfo propertyInfo;
-		//            for (Map.Entry pair : dictionary) {
-		//                    propertyInfo = result.GetType().GetProperty(pair.Key);
-		//                    propertyInfo.SetValue(result, Convert.ChangeType(pair.Value, propertyInfo.PropertyType), null);
-		//            }
-		return classz.newInstance();
+		return new ObjectMapper().convertValue(dictionary, classz);
 	}
-
 }

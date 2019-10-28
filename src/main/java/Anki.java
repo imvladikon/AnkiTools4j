@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.*;
 import java.util.function.Function;
 
@@ -163,7 +164,7 @@ public class Anki {
 			}
 		}
 		if (mid.equals("") || (this.infoPerMid.containsKey(mid)
-			&& properties.length != (this.infoPerMid.get(mid)).getItem3().size())) {
+			&& properties.length != this.infoPerMid.get(mid).getItem3().size())) {
 			throw new InvalidArgumentException(new String[] { "Number of fields provided is not the same as the one expected" });
 		}
 		AnkiItem item = new AnkiItem((this.infoPerMid.get(mid)).getItem3(), properties);
@@ -202,7 +203,7 @@ public class Anki {
 	public boolean containsItem(AnkiItem item) {
 		int matching = 1;
 		for (AnkiItem ankiItem : this.ankiItems) {
-			if (item == ankiItem)
+			if (item.equals(ankiItem))
 				++matching;
 		}
 		return matching == item.getCount();
@@ -262,7 +263,8 @@ public class Anki {
 				add(new Field("Back"));
 			}
 		};
-		this.infoPerMid.put("DEFAULT", new Triplet<>("", GeneralHelper.readResource("CardStyle.css"), fields));
+		this.infoPerMid.put("DEFAULT",
+							new Triplet<>("", GeneralHelper.readResource("CardStyle.css"), fields));
 	}
 
 	private boolean isRightFieldList(FieldList list, String[] properties) {
@@ -414,24 +416,26 @@ public class Anki {
 			}
 			List<Long> mids = new ArrayList<>();
 			List<String[]> result = new ArrayList<>();
-			try (ResultSet reader = SQLiteHelper
-					.executeSQLiteCommandRead(	this.conn,
-												"SELECT notes.flds, notes.mid FROM notes")) {
+			try (Statement statement = conn.createStatement();
+					ResultSet reader =
+							statement.executeQuery("SELECT notes.flds, notes.mid FROM notes")) {
 				while (reader.next()) {
-					long currentMid = reader.getLong(1);
+					long currentMid = reader.getLong(2);
 					if (!mids.contains(currentMid)) {
 						mids.add(currentMid);
 					}
-					result.add(reader.getString(0).split(String.valueOf((char) 0x1f)));
+					result.add(reader.getString(1).split(String.valueOf((char) 0x1f)));
 				}
 			}
-			try (ResultSet reader =
-					SQLiteHelper.executeSQLiteCommandRead(this.conn, "SELECT models FROM col")) {
+			try (Statement statement = conn.createStatement();
+					ResultSet reader = statement.executeQuery("SELECT models FROM col");) {
 				String models = "";
 				while (reader.next()) {
-					models = reader.getString(0); //TODO: ???
+					models = reader.getString(1);
 				}
 				addFields(models, mids);
+			} catch (Exception e) {
+				System.out.println(e.getMessage());
 			}
 			List<AnkiDictDynamic> revLogMetadatas =
 					Mapper.mapSQLiteReader(this.conn, "SELECT * FROM revlog");

@@ -37,8 +37,8 @@ public class AnkiItem {
 		}
 		for (Map.Entry pair : this.DICTIONARY.entrySet()) {
 			if (((AnkiItem) obj).DICTIONARY.containsKey(pair.getKey())
-				&& ((AnkiItem) obj).DICTIONARY.get(pair.getKey()).toString() != pair.getValue()
-						.toString())
+				&& !((AnkiItem) obj).DICTIONARY.get(pair.getKey()).toString().equals(pair.getValue()
+						.toString()))
 				return false;
 		}
 		return true;
